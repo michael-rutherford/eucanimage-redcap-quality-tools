@@ -1,0 +1,36 @@
+
+
+
+forms:
+
+use_case_1
+use_case_3
+use_case_4_and_5
+use_case_6_and_8
+use_case_7
+
+
+
+
+#!/usr/bin/env python
+import requests
+data = {
+    'token': 'ABC',
+    'content': 'record',
+    'action': 'export',
+    'format': 'json',
+    'type': 'flat',
+    'csvDelimiter': '',
+    'records[0]': 'test_7_1',
+    'forms[0]': 'use_case_7',
+    'rawOrLabel': 'raw',
+    'rawOrLabelHeaders': 'raw',
+    'exportCheckboxLabel': 'false',
+    'exportSurveyFields': 'false',
+    'exportDataAccessGroups': 'false',
+    'returnFormat': 'json'
+}
+r = requests.post('https://redcap.ega-archive.org/api/',data=data)
+print('HTTP Status: ' + str(r.status_code))
+print(r.json())
+
