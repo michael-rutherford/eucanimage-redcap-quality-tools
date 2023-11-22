@@ -1,6 +1,17 @@
 {
-  "redcap_server": "http://host.docker.internal/xnat",
-  "redcap_token": "ABC",
+  "redcap_server": "https://redcap.ega-archive.org/api/",
   "redcap_forms": [ "use_case_1", "use_case_3", "use_case_4_and_5", "use_case_6_and_8", "use_case_7" ],
-  "output_path": "/output"
+  "redcap_tokens": {
+    "use_case_1": "ABC_1",
+    "use_case_3": "ABC_3",
+    "use_case_4_and_5": "ABC_4_5",
+    "use_case_6_and_8": "ABC_6_8",
+    "use_case_7": "ABC_7"
+  },
+  "redcap_dags": [ "fcrb", "gumed", "kauno", "tauli", "test", "umu", "unipi" ],
+  "data_dictionary_path": "/data/data_dictionary.xlsx",
+  "data_quality_rules_path": "/data/data_quality_rules.xlsx",
+  "output_path": "/output",
+  "log_path": "/logs",
+  "log_level": "debug"
 }
