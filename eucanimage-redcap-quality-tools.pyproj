@@ -38,7 +38,7 @@
     <Content Include="data\data_dictionary.xlsx" />
     <Content Include="data\data_quality_rules.xlsx" />
     <Content Include="example\config_example.json" />
-    <Content Include="example\data.txt" />
+    <Content Include="README.md" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <ItemGroup>
