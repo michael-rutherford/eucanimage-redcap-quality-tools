@@ -16,6 +16,8 @@ def run_quality_checks(args, log):
     tools.refresh(args['refresh_all'])    
 
     tools.run_quality_checks()
+    tools.get_quality_counts()
+    #tools.get_quality_results()
     # tools.export_results()
   
     return None
@@ -46,12 +48,13 @@ def main(argv):
         args['redcap_forms'] = json_data['redcap_forms']
         args['redcap_tokens'] = json_data['redcap_tokens']
         args['redcap_dags'] = json_data['redcap_dags']
+        args['rule_weights'] = json_data['rule_weights']
         args['data_dictionary_path'] = json_data['data_dictionary_path']
         args['data_quality_rules_path'] = json_data['data_quality_rules_path']
         args['output_path'] = json_data['output_path']
-        args['log_path'] = json_data['log_path']
-        args['log_level'] = json_data['log_level']
-        args['refresh_all'] = json_data['refresh_all']
+        args['log_path'] = json_data['log_path'] 
+        args['log_level'] = json_data['log_level'] if 'log_level' in json_data else "info"
+        args['refresh_all'] = json_data['refresh_all'] if 'refresh_all' in json_data else True
 
     # --------------------------------------
     # initialize logging

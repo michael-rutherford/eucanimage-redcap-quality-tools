@@ -3,9 +3,13 @@ import requests
 import pandas as pd
 import json
 from datetime import datetime
+
 from models.redcap_db import redcap_db
 from models.redcap_db import RedcapRecord
+from models.redcap_db import QualityRuleWeight
 from models.redcap_db import QualityAssessment
+from models.redcap_db import QualityAssessmentCount
+from models.redcap_db import QualityAssessmentResult
 
 class redcap_tools(object):
 
@@ -30,6 +34,8 @@ class redcap_tools(object):
             self.generate_dq_dict()
         else:
             self.redcap_db.drop_table("quality_assessment")
+            self.redcap_db.drop_table("quality_assessment_count")
+            self.redcap_db.drop_table("quality_assessment_result")
             self.redcap_db.create_database(True)
             self.generate_dq_dict()            
             
@@ -70,7 +76,19 @@ class redcap_tools(object):
         dq_df = pd.concat(uc_dq_dfs)
         
         self.redcap_db.insert_dataframe(self.db_session, 'data_dictionary', dd_df)
-        self.redcap_db.insert_dataframe(self.db_session, 'quality_rules', dq_df)
+        self.redcap_db.insert_dataframe(self.db_session, 'quality_rule', dq_df)
+        
+        log.info(f'Importing Weights')
+        
+        rule_weights = args['rule_weights']
+        insert_weights = []
+        for key, value in rule_weights.items():
+            rule_weight = QualityRuleWeight()
+            rule_weight.check_type = key
+            rule_weight.weight = value
+            insert_weights.append(rule_weight)
+            
+        self.redcap_db.insert_list(self.db_session, insert_weights)            
         
         return None
 
@@ -103,8 +121,8 @@ class redcap_tools(object):
             uc = uc_dict[tab]
             #log.info(f'---- {uc}')
             
-            dq_query = f"select * from quality_rules where uc = '{uc}'"
-            dq_df = self.redcap_db.query(self.db_session, 'quality_rules', dq_query, return_df=True)
+            dq_query = f"select * from quality_rule where uc = '{uc}'"
+            dq_df = self.redcap_db.query(self.db_session, 'quality_rule', dq_query, return_df=True)
 
             dq_dict[uc] = {}
             
@@ -357,6 +375,70 @@ class redcap_tools(object):
 
         #self.result_list = result_list
         
+        return None
+
+    def get_quality_counts(self):
+        
+        args = self.args
+        log = self.log
+
+        log.info(f'Getting Data Quality Counts')        
+        
+        # get list of forms
+        try:
+            qac_query = """
+                insert into quality_assessment_count (redcap_form, redcap_data_access_group, 
+                    redcap_record_id, check_dimension, check_type, total_checks, passed_checks)
+	            select redcap_form,
+	                   redcap_data_access_group,
+	                   redcap_record_id,
+	                   check_dimension,
+	                   check_type,
+	                   count(qa_id) as total_checks,
+	                   sum(check_passed) as passed_checks
+	            from quality_assessment
+	            group by redcap_form, redcap_data_access_group, 
+	                     redcap_record_id, check_dimension, check_type
+            """
+            self.db_session.execute(qac_query)
+            self.db_session.commit()
+        except Exception as e:
+            self.db_session.rollback()
+            print(f"An error occurred: {e}")
+            
+        return None
+
+    def get_quality_results(self):
+
+        args = self.args
+        log = self.log
+
+        log.info(f'Calculating Data Quality Results')
+        
+        form_list = self.redcap_db.query(self.db_session, QualityAssessment, 'select distinct uc from data_dictionary', return_df=True)['uc'].tolist()
+        dag_list = self.redcap_db.query(self.db_session, QualityAssessment, 'select distinct redcap_data_access_group from redcap_record', return_df=True)['redcap_data_access_group'].tolist()
+
+        for form in form_list:
+            for dag in dag_list:
+                log.info(f'---- {form} - {dag}')
+                
+                qar_query = f"""
+	                select qac.*, qrw.weight as weight,
+ 	                        CAST(qac.passed_checks AS REAL) / qac.total_checks as score,
+ 	                        CAST(qac.passed_checks AS REAL) / qac.total_checks * qrw.weight as weighted_score
+	                from quality_assessment_count qac
+	                left join quality_rule_weight qrw
+	                on qac.check_type = qrw.check_type
+	                where redcap_form = '{form}'
+	                and redcap_data_access_group = '{dag}'
+                """
+                qar_df = self.redcap_db.query(self.db_session, QualityAssessmentCount, qar_query, return_df=True)
+                a='a'
+
+        #rec_list = self.redcap_db.query(self.db_session, QualityAssessment, 'select distinct redcap_record_id from redcap_record', return_df=True)['redcap_record_id'].tolist()
+
+
+
         return None
 
     def export_results(self):

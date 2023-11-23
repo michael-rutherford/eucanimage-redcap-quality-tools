@@ -216,8 +216,8 @@ class DataDictionary(Base):
     note = Column(TEXT)
     branching = Column(TEXT)
 
-class QualityRules(Base):
-    __tablename__ = 'quality_rules'
+class QualityRule(Base):
+    __tablename__ = 'quality_rule'
     
     qr_id = Column(INTEGER, primary_key=True, autoincrement=True)
     uc = Column(TEXT)
@@ -234,6 +234,13 @@ class QualityRules(Base):
     code_list = Column(TEXT)
     message = Column(TEXT)
 
+class QualityRuleWeight(Base):
+    __tablename__ = 'quality_rule_weight'
+
+    qrw_id = Column(INTEGER, primary_key=True, autoincrement=True)
+    check_type = Column(TEXT)
+    weight = Column(REAL)
+
 class QualityAssessment(Base):
     __tablename__ = 'quality_assessment'
 
@@ -242,9 +249,41 @@ class QualityAssessment(Base):
     redcap_data_access_group = Column(TEXT)
     redcap_record_id = Column(TEXT)
     variable = Column(TEXT)
+    check_dimension = Column(TEXT)
     check_type = Column(TEXT)
     check_name = Column(TEXT)
-    check_dimension = Column(TEXT)
     check_value = Column(TEXT)
     check_passed = Column(BOOLEAN)
     check_message = Column(TEXT)
+
+class QualityAssessmentCount(Base):
+    __tablename__ = 'quality_assessment_count'
+
+    qac_id = Column(INTEGER, primary_key=True, autoincrement=True)
+    redcap_form = Column(TEXT)
+    redcap_data_access_group = Column(TEXT)
+    redcap_record_id = Column(TEXT)
+    check_dimension = Column(TEXT)
+    check_type = Column(TEXT)
+    total_checks = Column(INTEGER)
+    passed_checks = Column(INTEGER)
+    
+class QualityAssessmentResult(Base):
+    __tablename__ = 'quality_assessment_result'
+
+    qar_id = Column(INTEGER, primary_key=True, autoincrement=True)
+    result_level = Column(TEXT) # dag, dag_form, dag_form_record, dag_form_record_variable, form, record, variable
+    redcap_form = Column(TEXT)
+    redcap_data_access_group = Column(TEXT)
+    redcap_record_id = Column(TEXT)
+    variable = Column(TEXT)    
+    completeness_score = Column(REAL)
+    conformance_score = Column(REAL)
+    plausibility_score = Column(REAL)
+    min_req_score = Column(REAL)
+    man_req_score = Column(REAL)
+    permissible_score = Column(REAL)
+    datatype_score = Column(REAL)
+    datatype_score = Column(REAL)
+    total_score = Column(REAL)
+    results_json = Column(TEXT)
