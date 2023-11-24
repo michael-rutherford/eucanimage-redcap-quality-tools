@@ -80,6 +80,6 @@ def main(argv):
 
     
 if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn", True)
+    #multiprocessing.set_start_method("spawn", True)
     main(sys.argv[1:])
 

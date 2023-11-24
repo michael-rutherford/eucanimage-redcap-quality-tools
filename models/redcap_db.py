@@ -26,7 +26,7 @@ class redcap_db(object):
     # Initialize
     def __init__(self, db_connect_string):
 
-        self.engine = create_engine(db_connect_string, echo=False, future=False)
+        self.engine = create_engine(db_connect_string, echo=False)
         self.session_maker = sessionmaker(bind = self.engine)
 
         return None
