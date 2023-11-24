@@ -42,7 +42,7 @@ The configuration file is a JSON file that contains the following information:
 3. Run script
     ```
 
-    python3 redcap_quality_tools.py <path to config_file>
+    python3 run_quality_checks.py <path to config_file>
 
     ```
 
