@@ -18,6 +18,9 @@ class redcap_tools(object):
         self.args = args
         self.log = log
         
+        if not os.path.exists(args["output_path"]):
+            os.makedirs(args["output_path"])
+
         db_connect_string = f'sqlite+pysqlite:///{os.path.join(args["output_path"],"data_quality_results.db")}'
         self.redcap_db = redcap_db(db_connect_string)
         self.db_session = self.redcap_db.get_session()
