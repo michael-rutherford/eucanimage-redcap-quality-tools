@@ -46,7 +46,7 @@ class redcap_db(object):
 
         return None
     
-    # Create Database
+    # Drop Database
     def drop_database(self, check):
 
         Base.metadata.drop_all(self.engine, checkfirst=check)

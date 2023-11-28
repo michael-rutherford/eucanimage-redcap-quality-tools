@@ -13,7 +13,7 @@ def run_quality_checks(args, log):
     #log.info(f'Running Quality Checks')
     
     tools = redcap_tools(args, log)
-    tools.refresh(args['refresh_all'])    
+    tools.refresh(args['refresh_all'] if 'refresh_all' in args else True)    
 
     tools.run_quality_checks()
     tools.get_quality_counts()
