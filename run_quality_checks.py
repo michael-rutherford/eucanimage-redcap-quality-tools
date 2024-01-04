@@ -16,9 +16,8 @@ def run_quality_checks(args, log):
     tools.refresh(args['refresh_all'] if 'refresh_all' in args else True)    
 
     tools.run_quality_checks()
-    tools.get_quality_counts()
-    #tools.get_quality_results()
-    # tools.export_results()
+    tools.get_quality_results()
+    tools.get_quality_scores()
   
     return None
 

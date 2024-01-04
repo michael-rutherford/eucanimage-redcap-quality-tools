@@ -255,11 +255,11 @@ class QualityAssessment(Base):
     check_value = Column(TEXT)
     check_passed = Column(BOOLEAN)
     check_message = Column(TEXT)
-
-class QualityAssessmentCount(Base):
-    __tablename__ = 'quality_assessment_count'
-
-    qac_id = Column(INTEGER, primary_key=True, autoincrement=True)
+        
+class QualityAssessmentResult(Base):
+    __tablename__ = 'quality_assessment_result'
+    
+    qar_id = Column(INTEGER, primary_key=True, autoincrement=True)
     redcap_form = Column(TEXT)
     redcap_data_access_group = Column(TEXT)
     redcap_record_id = Column(TEXT)
@@ -267,23 +267,50 @@ class QualityAssessmentCount(Base):
     check_type = Column(TEXT)
     total_checks = Column(INTEGER)
     passed_checks = Column(INTEGER)
-    
-class QualityAssessmentResult(Base):
-    __tablename__ = 'quality_assessment_result'
+    score = Column(REAL)
+    weight = Column(REAL)
+    weighted_score = Column(REAL)
 
-    qar_id = Column(INTEGER, primary_key=True, autoincrement=True)
-    result_level = Column(TEXT) # dag, dag_form, dag_form_record, dag_form_record_variable, form, record, variable
+class QualityAssessmentScore(Base):
+    __tablename__ = 'quality_assessment_score'
+
+    qae_id = Column(INTEGER, primary_key=True, autoincrement=True)
+    result_level = Column(TEXT) # form, form_dag, form_dag_record
     redcap_form = Column(TEXT)
     redcap_data_access_group = Column(TEXT)
     redcap_record_id = Column(TEXT)
-    variable = Column(TEXT)    
+    
     completeness_score = Column(REAL)
     conformance_score = Column(REAL)
     plausibility_score = Column(REAL)
-    min_req_score = Column(REAL)
-    man_req_score = Column(REAL)
+    
+    minimal_req_score = Column(REAL)
+    mandatory_req_score = Column(REAL)
     permissible_score = Column(REAL)
     datatype_score = Column(REAL)
-    datatype_score = Column(REAL)
+    range_score = Column(REAL)
+
     total_score = Column(REAL)
-    results_json = Column(TEXT)
+    weighted_score = Column(REAL)
+
+    export_json = Column(TEXT)
+
+
+
+
+
+
+
+
+
+# class QualityAssessmentCount(Base):
+#     __tablename__ = 'quality_assessment_count'
+
+#     qac_id = Column(INTEGER, primary_key=True, autoincrement=True)
+#     redcap_form = Column(TEXT)
+#     redcap_data_access_group = Column(TEXT)
+#     redcap_record_id = Column(TEXT)
+#     check_dimension = Column(TEXT)
+#     check_type = Column(TEXT)
+#     total_checks = Column(INTEGER)
+#     passed_checks = Column(INTEGER)

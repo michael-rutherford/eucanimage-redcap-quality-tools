@@ -1,4 +1,6 @@
 import os
+from re import S
+from numpy import datetime_as_string
 import requests
 import pandas as pd
 import json
@@ -8,7 +10,6 @@ from models.redcap_db import redcap_db
 from models.redcap_db import RedcapRecord
 from models.redcap_db import QualityRuleWeight
 from models.redcap_db import QualityAssessment
-from models.redcap_db import QualityAssessmentCount
 from models.redcap_db import QualityAssessmentResult
 
 class redcap_tools(object):
@@ -37,8 +38,8 @@ class redcap_tools(object):
             self.generate_dq_dict()
         else:
             self.redcap_db.drop_table("quality_assessment")
-            self.redcap_db.drop_table("quality_assessment_count")
             self.redcap_db.drop_table("quality_assessment_result")
+            self.redcap_db.drop_table("quality_assessment_score")
             self.redcap_db.create_database(True)
             self.generate_dq_dict()            
             
@@ -220,50 +221,53 @@ class redcap_tools(object):
                 
                 def check_value_datatype(value, datatype):
                         
-                    if datatype == 'integer':
-                        try:
-                            value = int(value)
-                        except:
-                            return False
-                    elif datatype == 'number':
-                        try:
-                            value = float(value)
-                        except:
-                            return False
-                    elif datatype == 'date':
-                        try:
-                            value = datetime.strptime(value, '%Y-%m-%d')
-                        except:
-                            return False
-                    elif datatype == 'datetime':
-                        try:
-                            value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
-                        except:
-                            return False
-                    elif datatype == 'time':
-                        try:
-                            value = datetime.strptime(value, '%H:%M:%S')
-                        except:
-                            return False
-                    elif datatype == 'string':
-                        try:
-                            value = str(value)
-                        except:
-                            return False
-                    elif datatype == 'boolean':
-                        try:
-                            value = bool(value)
-                        except:
-                            return False
+                    if value is None or value == '' or pd.isnull(value):    
+                        return True
                     else:
-                        return False
+                        if datatype == 'integer':
+                            try:
+                                value = int(value)
+                            except:
+                                return False
+                        elif datatype == 'number':
+                            try:
+                                value = float(value)
+                            except:
+                                return False
+                        elif datatype == 'date':
+                            try:
+                                value = datetime.strptime(value, '%Y-%m-%d')
+                            except:
+                                return False
+                        elif datatype == 'datetime':
+                            try:
+                                value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+                            except:
+                                return False
+                        elif datatype == 'time':
+                            try:
+                                value = datetime.strptime(value, '%H:%M:%S')
+                            except:
+                                return False
+                        elif datatype == 'string':
+                            try:
+                                value = str(value)
+                            except:
+                                return False
+                        elif datatype == 'boolean':
+                            try:
+                                value = bool(value)
+                            except:
+                                return False
+                        else:
+                            return False
                         
-                    return True
+                        return True
 
                 def check_value_range(value, value_min, value_max):
                         
-                    if value == '' or value is None:
-                        return False
+                    if value is None or value == '' or pd.isnull(value):
+                        return True                        
                     elif int(value) >= int(value_min) and int(value) <= int(value_max):
                         return True
                     else:
@@ -271,9 +275,9 @@ class redcap_tools(object):
                     
                 def check_value_permissible(value, permissible_values):
                     
-                    if value == '' or value is None:
-                        return False
-                    elif value in permissible_values:
+                    if value is None or value == '' or pd.isnull(value):
+                        return True
+                    elif int(value) in permissible_values.keys():
                         return True
                     else:
                         return False
@@ -305,8 +309,6 @@ class redcap_tools(object):
                         
                         is_required = eval(condition_string)
 
-                        a='a'
-                        
                         if is_required:
                             if value is None or value == '' or pd.isnull(value):
                                 return False
@@ -380,30 +382,44 @@ class redcap_tools(object):
         
         return None
 
-    def get_quality_counts(self):
+    def get_quality_results(self):
         
         args = self.args
         log = self.log
 
-        log.info(f'Getting Data Quality Counts')        
+        log.info(f'Getting Data Quality Results')        
         
         # get list of forms
         try:
-            qac_query = """
-                insert into quality_assessment_count (redcap_form, redcap_data_access_group, 
-                    redcap_record_id, check_dimension, check_type, total_checks, passed_checks)
-	            select redcap_form,
-	                   redcap_data_access_group,
-	                   redcap_record_id,
-	                   check_dimension,
-	                   check_type,
-	                   count(qa_id) as total_checks,
-	                   sum(check_passed) as passed_checks
-	            from quality_assessment
-	            group by redcap_form, redcap_data_access_group, 
-	                     redcap_record_id, check_dimension, check_type
+            qar_query = """
+                with passed_counts as
+                (
+	                select redcap_form,
+	                       redcap_data_access_group,
+	                       redcap_record_id,
+	                       check_dimension,
+	                       check_type,
+	                       count(qa_id) as total_checks,
+	                       sum(check_passed) as passed_checks
+	                from quality_assessment
+	                group by redcap_form, redcap_data_access_group, 
+	                         redcap_record_id, check_dimension, check_type
+                ),
+                passed_results as
+                (
+	                select qac.*, qrw.weight as weight,
+ 	                       CAST(qac.passed_checks AS REAL) / qac.total_checks as score,
+ 	                       CAST(qac.passed_checks AS REAL) / qac.total_checks * qrw.weight as weighted_score
+	                from passed_counts qac
+	                left join quality_rule_weight qrw
+	                on qac.check_type = qrw.check_type
+                )
+                insert into quality_assessment_result (redcap_form, redcap_data_access_group, 
+                    redcap_record_id, check_dimension, check_type, total_checks, passed_checks,
+                    weight, score, weighted_score)
+                select * from passed_results
             """
-            self.db_session.execute(qac_query)
+            self.db_session.execute(qar_query)
             self.db_session.commit()
         except Exception as e:
             self.db_session.rollback()
@@ -411,74 +427,143 @@ class redcap_tools(object):
             
         return None
 
-    def get_quality_results(self):
+    def get_quality_scores(self):
 
         args = self.args
         log = self.log
 
-        log.info(f'Calculating Data Quality Results')
+        log.info(f'Getting Quality Scores')
         
-        form_list = self.redcap_db.query(self.db_session, QualityAssessment, 'select distinct uc from data_dictionary', return_df=True)['uc'].tolist()
-        dag_list = self.redcap_db.query(self.db_session, QualityAssessment, 'select distinct redcap_data_access_group from redcap_record', return_df=True)['redcap_data_access_group'].tolist()
+        dim_list = self.redcap_db.query(session=self.db_session, query_text="select distinct check_dimension from quality_rule", return_df=True)["check_dimension"].tolist()            
+        type_list = self.redcap_db.query(session=self.db_session, query_text="select distinct check_type from quality_rule", return_df=True)["check_type"].tolist()   
+        weights_dict = self.redcap_db.query(session=self.db_session, query_text="select distinct check_type, weight from quality_rule_weight", return_df=True).set_index('check_type',drop=True).to_dict(orient='index')
+        weight_dict = {key: value['weight'] for key, value in weights_dict.items()}
 
-        for form in form_list:
-            for dag in dag_list:
-                log.info(f'---- {form} - {dag}')
+        score_inserts = []
+
+        def get_score(form=None, dag=None, rec=None):
+
+            result_level = ""
+            qa_query = "select * from quality_assessment where 1=1"
+            qas_query = "select * from quality_assessment_result where 1=1"
+            if form is not None:
+                qa_query += f" and redcap_form = '{form}'"
+                qas_query += f" and redcap_form = '{form}'"
+                result_level += "form"
+            if dag is not None:
+                qa_query += f" and redcap_data_access_group = '{dag}'"
+                qas_query += f" and redcap_data_access_group = '{dag}'"
+                result_level += "_dag"
+            if rec is not None:
+                qa_query += f" and redcap_record_id = '{rec}'"
+                qas_query += f" and redcap_record_id = '{rec}'"
+                result_level += "_rec"
                 
-                qar_query = f"""
-	                select qac.*, qrw.weight as weight,
- 	                        CAST(qac.passed_checks AS REAL) / qac.total_checks as score,
- 	                        CAST(qac.passed_checks AS REAL) / qac.total_checks * qrw.weight as weighted_score
-	                from quality_assessment_count qac
-	                left join quality_rule_weight qrw
-	                on qac.check_type = qrw.check_type
-	                where redcap_form = '{form}'
-	                and redcap_data_access_group = '{dag}'
-                """
-                qar_df = self.redcap_db.query(self.db_session, QualityAssessmentCount, qar_query, return_df=True)
-                a='a'
+            qa_df = self.redcap_db.query(session=self.db_session, query_text=qa_query, return_df=True)
+            qas_df = self.redcap_db.query(session=self.db_session, query_text=qas_query, return_df=True)
 
-        #rec_list = self.redcap_db.query(self.db_session, QualityAssessment, 'select distinct redcap_record_id from redcap_record', return_df=True)['redcap_record_id'].tolist()
-
-
-
-        return None
-
-    def export_results(self):
-        
-        args = self.args
-        log = self.log
-        
-        log.info(f'Exporting Data Quality Results')
-        
-        result_df = pd.DataFrame(self.result_list)
-        result_df = result_df[['redcap_form','redcap_data_access_group','record_id','variable','check_type','check_name','check_dimension','check_value','check_passed','check_message']]
-
-        # export excel file
-        result_df.to_excel(os.path.join(args['output_path'], 'data_quality_results.xlsx'))  
-        
-        # export json file
-        result_df.to_sql(os.path.join(args['output_path'], 'data_quality_results.db'), index=False, if_exists='replace')
-        
-        result_df.set_index(['redcap_form', 'redcap_data_access_group', 'record_id', 'variable', 'check_type'], inplace=True)
-        
-        def nest_dataframe(df):
-            if df.index.nlevels == 1:
-                return df.to_dict(orient='index')
-            else:
-                return df.groupby(level=0).apply(lambda df: nest_dataframe(df.droplevel(0))).to_dict()
-       
-        result_dict = nest_dataframe(result_df)
-        
-        with open(os.path.join(args['output_path'], 'data_quality_results.json'), 'w') as file:
-            json.dump(result_dict, file, indent=4)
+            score_insert = {}
+            score_insert['result_level'] = result_level
+            score_insert['redcap_form'] = form
+            score_insert['redcap_data_access_group'] = dag
+            score_insert['redcap_record_id'] = rec
             
-        #result_json = json.dumps(result_dict, indent=4)
-        
-        #result_df.to_json(os.path.join(args['output_path'], 'data_quality_results.json'), orient='table', indent=4)
-        #result_dict = result_df.to_dict(orient='index')
-        
+            for dim in dim_list:
+                dim_df = qas_df[qas_df['check_dimension'] == dim]
+                dim_total = dim_df['total_checks'].sum()
+                dim_passed = dim_df['passed_checks'].sum()
+                dim_score = dim_passed / dim_total if dim_total > 0 else 1
+                score_insert[f'{dim}_score'] = dim_score
+
+            weighted_score = 0
+            
+            for check_type in type_list:
+                check_df = qas_df[qas_df['check_type'] == check_type]
+                check_total = check_df['total_checks'].sum()
+                check_passed = check_df['passed_checks'].sum()
+                check_score = check_passed / check_total if check_total > 0 else 1
+                score_insert[f'{check_type}_score'] = check_score
+                
+                check_weighted = check_score * weight_dict[check_type]
+                weighted_score += check_weighted
+
+            score_insert['weighted_score'] = weighted_score
+            
+            total_checks = qas_df['total_checks'].sum()
+            passed_checks = qas_df['passed_checks'].sum()
+            total_score = passed_checks / total_checks if total_checks > 0 else 1
+            score_insert['total_score'] = total_score
+            
+            json_dict = {}
+            json_dict['score'] = score_insert
+            json_dict['weight'] = weight_dict
+            json_dict['assessment'] = qa_df.to_dict(orient='index')
+            
+            score_insert['export_json'] = json.dumps(json_dict)
+
+            return score_insert
+
+        form_query = "select distinct redcap_form from redcap_record"
+        form_list = self.redcap_db.query(session=self.db_session, query_text=form_query, return_df=True)["redcap_form"].tolist()
+        for form in form_list:
+            score_inserts.append(get_score(form=form))
+            dag_query = f"select distinct redcap_data_access_group from redcap_record where redcap_form = '{form}'"
+            dag_list = self.redcap_db.query(session=self.db_session, query_text=dag_query, return_df=True)["redcap_data_access_group"].tolist()
+            for dag in dag_list:
+                score_inserts.append(get_score(form=form, dag=dag))
+                rec_query = f"select distinct redcap_record_id from redcap_record where redcap_form = '{form}' and redcap_data_access_group = '{dag}'"
+                rec_list = self.redcap_db.query(session=self.db_session, query_text=rec_query, return_df=True)["redcap_record_id"].tolist()        
+                for rec in rec_list:
+                    score_inserts.append(get_score(form=form, dag=dag, rec=rec))
+                                   
+        score_df = pd.DataFrame(score_inserts)        
+        self.redcap_db.insert_dataframe(self.db_session, 'quality_assessment_score', score_df)                            
+
         return None
+    
+
+
+
+
+
+
+
+
+    # def export_results(self):
+        
+    #     args = self.args
+    #     log = self.log
+        
+    #     log.info(f'Exporting Data Quality Results')
+        
+    #     result_df = pd.DataFrame(self.result_list)
+    #     result_df = result_df[['redcap_form','redcap_data_access_group','record_id','variable','check_type','check_name','check_dimension','check_value','check_passed','check_message']]
+
+    #     # export excel file
+    #     result_df.to_excel(os.path.join(args['output_path'], 'data_quality_results.xlsx'))  
+        
+    #     # export json file
+    #     result_df.to_sql(os.path.join(args['output_path'], 'data_quality_results.db'), index=False, if_exists='replace')
+        
+    #     result_df.set_index(['redcap_form', 'redcap_data_access_group', 'record_id', 'variable', 'check_type'], inplace=True)
+        
+    #     def nest_dataframe(df):
+    #         if df.index.nlevels == 1:
+    #             return df.to_dict(orient='index')
+    #         else:
+    #             return df.groupby(level=0).apply(lambda df: nest_dataframe(df.droplevel(0))).to_dict()
+       
+    #     result_dict = nest_dataframe(result_df)
+        
+    #     with open(os.path.join(args['output_path'], 'data_quality_results.json'), 'w') as file:
+    #         json.dump(result_dict, file, indent=4)
+            
+    #     #result_json = json.dumps(result_dict, indent=4)
+        
+    #     #result_df.to_json(os.path.join(args['output_path'], 'data_quality_results.json'), orient='table', indent=4)
+    #     #result_dict = result_df.to_dict(orient='index')
+        
+    #     return None
     
 
 
