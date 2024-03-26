@@ -1,0 +1,3 @@
+record_id,sex,onsetage,indeterm_nodule,diag_method,hep_b,hep_c,ald,autoimm_hep,nafld,psc,others,chronic_hep,cirrhosis,child_pugh,use_case_1_complete
+test_1_1,0,23,0,1,1,1,2,0,2,2,0,2,0,,2
+test_1_2,,,0,,0,2,2,1,2,2,2,2,2,0,2

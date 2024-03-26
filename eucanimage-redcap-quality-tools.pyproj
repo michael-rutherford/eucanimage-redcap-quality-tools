@@ -33,10 +33,16 @@
     <Folder Include="modules\" />
     <Folder Include="example\" />
     <Folder Include="models\" />
+    <Folder Include="dummy\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="data\data_dictionary.xlsx" />
     <Content Include="data\data_quality_rules.xlsx" />
+    <Content Include="dummy\uc1_dummy.csv" />
+    <Content Include="dummy\uc3_dummy.csv" />
+    <Content Include="dummy\uc45_dummy.csv" />
+    <Content Include="dummy\uc68_dummy.csv" />
+    <Content Include="dummy\uc7_dummy.csv" />
     <Content Include="example\config_example.json" />
     <Content Include="README.md" />
     <Content Include="requirements.txt" />

@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 import multiprocessing
 
-from modules.quality_tools import quality_tools
+#from modules.quality_tools import quality_tools
 from modules.redcap_tools import redcap_tools
 from modules.log_helper import log_helper
 
@@ -13,11 +13,13 @@ def run_quality_checks(args, log):
     #log.info(f'Running Quality Checks')
     
     tools = redcap_tools(args, log)
-    tools.refresh(args['refresh_all'] if 'refresh_all' in args else True)    
+    tools.refresh()    
 
     tools.run_quality_checks()
     tools.get_quality_results()
     tools.get_quality_scores()
+    
+    tools.export_results()
   
     return None
 
@@ -32,7 +34,7 @@ def main(argv):
 
     # if no arguments, use default values for dev testing
     if len(argv) == 0:
-        args['config_path'] = r"D:\redcap\config\config.json"
+        args['config_path'] = r"D:\data\redcap\config\config.json"
     else:
         args['config_path'] = argv[0]
         
@@ -43,10 +45,17 @@ def main(argv):
     with open(args['config_path']) as json_file:
         json_data = json.load(json_file)
         
-        args['redcap_server'] = json_data['redcap_server']
-        args['redcap_forms'] = json_data['redcap_forms']
-        args['redcap_tokens'] = json_data['redcap_tokens']
-        args['redcap_dags'] = json_data['redcap_dags']
+        if 'bypass_redcap' in json_data and json_data['bypass_redcap'] == True:
+            args['bypass_redcap'] = json_data['bypass_redcap']
+            args['bypass_dag'] = json_data['bypass']['dag']
+            args['bypass_files'] = json_data['bypass']['files']
+        else:
+            args['bypass_redcap'] = False        
+            args['redcap_server'] = json_data['redcap_server']
+            args['redcap_forms'] = json_data['redcap_forms']
+            args['redcap_tokens'] = json_data['redcap_tokens']
+            args['redcap_dags'] = json_data['redcap_dags']
+            
         args['rule_weights'] = json_data['rule_weights']
         args['data_dictionary_path'] = json_data['data_dictionary_path']
         args['data_quality_rules_path'] = json_data['data_quality_rules_path']

@@ -28,8 +28,8 @@ class redcap_tools(object):
         
         self.dq_dict = None
         
-    def refresh(self, refresh_all):
-
+    def refresh(self):
+        refresh_all = self.args['refresh_all'] if 'refresh_all' in self.args else True
         if refresh_all == True:
             self.redcap_db.drop_database(True)
             self.redcap_db.create_database(True)
@@ -188,28 +188,56 @@ class redcap_tools(object):
 
         log.info(f'Retrieving Data Records')
 
-        for redcap_form in args['redcap_forms']:
+        if args['bypass_redcap'] == False:
+            for redcap_form in args['redcap_forms']:
 
-            log.info(f'---- {redcap_form}')
+                log.info(f'---- {redcap_form}')
 
-            record_list = []
+                record_list = []
 
-            # get list of records
-            log.info(f'Retrieving')
-            records = export_records(redcap_form)
-            records = [{**d, "redcap_form": redcap_form} for d in records]
+                # get list of records
+                log.info(f'Retrieving')
+                records = export_records(redcap_form)
+                records = [{**d, "redcap_form": redcap_form} for d in records]
             
-            log.info(f'Organizing')
-            for record in records:
-                rec = RedcapRecord()
-                rec.redcap_form = redcap_form
-                rec.redcap_data_access_group = record['redcap_data_access_group'] if 'redcap_data_access_group' in record else 'test'
-                rec.redcap_record_id = record['record_id']
-                rec.redcap_data = json.dumps(record)
-                record_list.append(rec)
+                log.info(f'Organizing')
+                for record in records:
+                    rec = RedcapRecord()
+                    rec.redcap_form = redcap_form
+                    rec.redcap_data_access_group = record['redcap_data_access_group'] if 'redcap_data_access_group' in record else 'test'
+                    rec.redcap_record_id = record['record_id']
+                    rec.redcap_data = json.dumps(record)
+                    record_list.append(rec)
 
-            log.info(f'Writing')
-            self.redcap_db.insert_list(self.db_session, record_list)
+                log.info(f'Writing')
+                self.redcap_db.insert_list(self.db_session, record_list)
+        else:
+            for redcap_form in args['bypass_files'].keys():
+                
+                log.info(f'---- {redcap_form}')
+                
+                record_list = []
+
+                # get list of records
+                log.info(f'Retrieving')
+                file_path = args['bypass_files'][redcap_form]
+                
+                if os.path.exists(file_path):
+                    records = pd.read_csv(file_path, dtype=str)
+                    records.fillna('', inplace=True)
+                    records = [{**d, "redcap_form": redcap_form} for d in records.to_dict(orient='records')]
+                
+                    log.info(f'Organizing')
+                    for record in records:
+                        rec = RedcapRecord()
+                        rec.redcap_form = redcap_form
+                        rec.redcap_data_access_group = args['bypass_dag'] if 'bypass_dag' in args else 'test'
+                        rec.redcap_record_id = record['record_id']
+                        rec.redcap_data = json.dumps(record)
+                        record_list.append(rec)
+                    
+                    log.info(f'Writing')
+                    self.redcap_db.insert_list(self.db_session, record_list)
 
         return None
 
@@ -355,7 +383,7 @@ class redcap_tools(object):
             results = []
             record_info = {}
             record_info['redcap_form'] = record['redcap_form'] 
-            record_info['redcap_data_access_group'] = record['redcap_data_access_group'] if 'redcap_data_access_group' in record else 'test'
+            record_info['redcap_data_access_group'] = self.args['bypass_dag'] if 'bypass_dag' in self.args else 'test'
             record_info['redcap_record_id'] = record['record_id']
             
             for key in record.keys():
@@ -521,7 +549,39 @@ class redcap_tools(object):
 
         return None
     
+    def export_results(self):
+        
+        args = self.args
+        log = self.log
+        
+        if args['bypass_redcap'] == True:
+        
+            log.info(f'Exporting Data Quality Results')
+        
+            export_df = self.redcap_db.query(session=self.db_session, query_text="select * from quality_assessment_score where result_level = 'form_dag'", return_df=True)
 
+
+            # a={}
+            # a['a'] = 'a'
+            # a['b'] = 'b'
+            # a['c'] = 'c'
+            
+            # json_file_path = os.path.join(args['output_path'], 'test.json')
+            
+            # with open(json_file_name, 'w') as json_file:
+            #     json.dump(json_data, json_file)
+
+            for index, row in export_df.iterrows():
+                
+                json_file_name = f'{row["redcap_data_access_group"]}_{row["redcap_form"]}_quality_results.json'
+                json_file_path = os.path.join(args['output_path'], json_file_name)
+                
+                json_data = json.loads(row['export_json'])
+    
+                with open(json_file_path, 'w') as json_file:
+                    json.dump(json_data, json_file, indent=4)                
+        
+            return None
 
 
 
@@ -565,138 +625,6 @@ class redcap_tools(object):
         
     #     return None
     
-
-
-
-    # def organize_dq_rules(self):
-        
-    #     def parse_code_list(code_string):
-
-    #         codes = code_string.split(" | ")
-
-    #         code_dict = {}
-
-    #         for code in codes:
-    #             elements = code.split("; ")
-    #             code_dict[int(elements[0])] = elements[1]
-
-    #         return code_dict
-
-    #     args = self.args
-    #     log = self.log
-
-    #     log.info(f'Organizing Data Quality Rules')
-        
-    #     dd_path = args['data_dictionary_path']
-    #     dq_path = args['data_quality_rules_path']
-        
-    #     uc_dd_dfs = []
-    #     uc_dq_dfs = []
-        
-    #     dq_dict = {}
-
-    #     uc_dict = {"UseCase1":"use_case_1", "UseCase3":"use_case_3", 
-    #                "UseCase4&5":"use_case_4_and_5", "UseCase7":"use_case_7", 
-    #                "UseCase6&8":"use_case_6_and_8"}
-        
-    #     for tab in uc_dict.keys():
-    #         uc = uc_dict[tab]
-    #         log.info(f'---- {uc}')
-
-    #         dd_df = pd.read_excel(dd_path, sheet_name=tab)
-    #         dd_df['uc'] = uc
-    #         dd_df.rename(columns={'min':'range_min', 'max':'range_max'})
-    #         uc_dd_dfs.append(dd_df)
-            
-    #         dq_df = pd.read_excel(dq_path, sheet_name=tab)
-    #         dq_df['uc'] = uc
-    #         dq_df.rename(columns={'min':'range_min', 'max':'range_max'})
-    #         uc_dq_dfs.append(dq_df)
-
-    #         dq_dict[uc] = {}
-            
-    #         for index, row in dq_df.iterrows():
-    #             variable = row['variable']
-    #             check_type = row['check_type']
-                
-    #             if variable not in dq_dict[uc]:
-    #                 dq_dict[uc][variable] = {} 
-    #             dq_dict[uc][variable][check_type] = {}
-    #             dq_dict[uc][variable][check_type]['check_name'] = row['check']
-    #             dq_dict[uc][variable][check_type]['check_dimension'] = row['check_dimension']
-    #             dq_dict[uc][variable][check_type]['check_message'] = row['message']
-                
-    #             if check_type == 'datatype':
-    #                 dq_dict[uc][variable][check_type]['check_datatype'] = row['datatype']
-    #             if check_type in ['minimal_req','mandatory_req']:
-    #                 dq_dict[uc][variable][check_type]['check_required'] = row['required']
-    #                 dq_dict[uc][variable][check_type]['check_condition'] = row['req_condition']
-    #             if check_type == 'range':
-    #                 dq_dict[uc][variable][check_type]['check_min'] = row['min']
-    #                 dq_dict[uc][variable][check_type]['check_max'] = row['max']
-    #             if check_type == 'permissible':
-    #                 code_dict = {}
-    #                 if not pd.isnull(row['code_list']):
-    #                     code_dict = parse_code_list(row['code_list'])
-    #                 dq_dict[uc][variable][check_type]['check_values'] = code_dict
-
-    #     dd_df = pd.concat(uc_dd_dfs)
-    #     dq_df = pd.concat(uc_dq_dfs)
-        
-    #     self.redcap_db.insert_dataframe(self.db_session, 'data_dictionary', dd_df)
-    #     self.redcap_db.insert_dataframe(self.db_session, 'quality_rules', dq_df)
-        
-    #     self.dq_dict = dq_dict
-        
-    #     return None
-
-
-
-
-
-    # def retrieve_data_records(self):
-        
-    #     def export_records(redcap_form):
-
-    #         data = {
-    #             'token': self.args["redcap_tokens"][redcap_form],
-    #             'content': 'record',
-    #             'action': 'export',
-    #             'format': 'json',
-    #             'type': 'flat',
-    #             'csvDelimiter': '',
-    #             'rawOrLabel': 'raw',
-    #             'rawOrLabelHeaders': 'raw',
-    #             'exportCheckboxLabel': 'false',
-    #             'exportSurveyFields': 'false',
-    #             'exportDataAccessGroups': 'true',
-    #             'returnFormat': 'json'
-    #         }
-    #         response = requests.post(self.args["redcap_server"],data=data)
-    #         response_status = response.status_code
-    #         response_json = response.json()
-    
-    #         return response_json
-
-    #     args = self.args
-    #     log = self.log
-
-    #     log.info(f'Retrieving Data Records')
-
-    #     record_list = []
-
-    #     for redcap_form in args['redcap_forms']:
-
-    #         log.info(f'---- {redcap_form}')
-
-    #         # get list of records
-    #         records = export_records(redcap_form)
-    #         records = [{**d, "redcap_form": redcap_form} for d in records]
-    #         record_list.extend(records)
-
-    #     self.record_list = record_list
-
-    #     return None
 
 
 

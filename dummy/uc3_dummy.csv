@@ -1,0 +1,2 @@
+record_id,sex,onsetage,histopat,diag_method,comorb_present,bca,biloma,cca,dn,fhcc,fhs,fnh,hemangioma,abscess,adenoma,pha,hhcyst,hcc,cirrhosis,phl,shcyst,thad,tnm_pt,tnm_ct,tnm_pn,tnm_cn,tnm_pm,tnm_cm,use_case_3_complete
+test_3_1,1,,0,1,2,1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,3,,3,,,,2
