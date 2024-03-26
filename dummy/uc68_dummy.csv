@@ -1,0 +1,2 @@
+record_id,sex,patientclass,onsetage,menop,n_preg,lactation,lactation_dur,symptoms,screening,famhisto_b,famhisto_o,laterality,bcstproxy,bcst_pam50,histopat,histopat_2,histopat_3,tnm_ct,tnm_cn,tnm_cm,grade,dcis,er,pr,her2ihc,ki67,her2fish,laterality_2,bcstproxy_2,bcst_pam50_2,histopat_1_2,histopat_2_2,histopat_3_2,tnm_ct_2,tnm_cn_2,tnm_cm_2,grade_2,dcis_2,er_2,pr_2,her2ihc_2,ki67_2,her2fish_2,hcontrac,hcohtrac_dur,hormtherapy,hormtherapy_dur,brca1,brca2,palb2,chek2,use_case_6_and_8_complete
+test_6_1,1,0,,0,,1,,,,,,0,,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,1,,,2
