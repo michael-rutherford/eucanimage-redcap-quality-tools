@@ -47,8 +47,8 @@ def main(argv):
         
         if 'bypass_redcap' in json_data and json_data['bypass_redcap'] == True:
             args['bypass_redcap'] = json_data['bypass_redcap']
-            args['bypass_dag'] = json_data['bypass']['dag']
-            args['bypass_files'] = json_data['bypass']['files']
+            args['bypass_dag'] = json_data['bypass_dag']
+            args['bypass_files'] = json_data['bypass_files']
         else:
             args['bypass_redcap'] = False        
             args['redcap_server'] = json_data['redcap_server']

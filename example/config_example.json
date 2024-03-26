@@ -1,15 +1,4 @@
 {
-  "bypass_redcap": false,
-  "bypass": {
-    "dag": "umu",
-    "files": {
-      "use_case_1": "/dummy/uc1_dummy.csv",
-      "use_case_3": "/dummy/uc3_dummy.csv",
-      "use_case_4_and_5": "/dummy/uc45_dummy.csv",
-      "use_case_6_and_8": "/dummy/uc68_dummy.csv",
-      "use_case_7": "/dummy/uc7_dummy.csv"
-    }
-  },
   "redcap_server": "https://redcap.ega-archive.org/api/",
   "redcap_forms": [ "use_case_1", "use_case_3", "use_case_4_and_5", "use_case_6_and_8", "use_case_7" ],
   "redcap_dags": [ "fcrb", "gumed", "kauno", "tauli", "test", "umu", "unipi" ],
@@ -19,6 +8,15 @@
     "use_case_4_and_5": "ABC_4_5",
     "use_case_6_and_8": "ABC_6_8",
     "use_case_7": "ABC_7"
+  },
+  "bypass_redcap": false,
+  "bypass_dag": "umu",
+  "bypass_files": {
+    "use_case_1": "/dummy/uc1_dummy.csv",
+    "use_case_3": "/dummy/uc3_dummy.csv",
+    "use_case_4_and_5": "/dummy/uc45_dummy.csv",
+    "use_case_6_and_8": "/dummy/uc68_dummy.csv",
+    "use_case_7": "/dummy/uc7_dummy.csv"
   },
   "rule_weights": {
     "minimal_req": 0.4,
